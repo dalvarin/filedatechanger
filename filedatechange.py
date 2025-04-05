@@ -34,8 +34,11 @@ def get_date_from_filename(filename: str) -> str:
     """
     # if the file name matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*.jpg'
     if re.match(r'IMG-\d{8}-WA\d+\.jpg', filename):
-       # extract the date from the file name
-        date_str = filename.split('-')[1][:4] + '-' + filename.split('-')[1][4:6] + '-' + filename.split('-')[1][6:] + ' ' + filename.split('-')[2].split('.')[0]
+        # extract the date from the file name
+        year = filename.split('-')[1][:4]
+        month = filename.split('-')[1][4:6]
+        day = filename.split('-')[1][6:]
+        date_str = f'{year}-{month}-{day} 00:00:00'
         return date_str
 
 
@@ -69,6 +72,21 @@ if __name__ == "__main__":
     # Get the file path and date string from command line arguments
     file_path = sys.argv[1]
 
+    # check if the file path is a directory
+    if os.path.isdir(file_path):
+        # Get all files in the directory
+        print(f"'{file_path}' is a directory.")
+        files = get_files_in_directory(file_path)
+        print(f"Files in directory '{file_path}': {files}")
+        # Set the modification date for each file
+        for file in files:
+            print(f"Setting date for file: {file}")
+            full_path = os.path.join(file_path, file)
+            date_str = get_date_from_filename(file)
+            print (f"Extracted date string: {date_str}")
+            set_file_date(full_path, date_str)
+        sys.exit(0)
+
     # Check if the file exists
     if not os.path.isfile(file_path):
         print(f"File '{file_path}' does not exist.")
@@ -79,5 +97,5 @@ if __name__ == "__main__":
     print (f"Extracted date string: {date_str}")
 
     # Set the file's modification date
-    #set_file_date(file_path, date_str)
+    set_file_date(file_path, date_str)
 
