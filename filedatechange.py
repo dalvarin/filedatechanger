@@ -4,6 +4,21 @@ import os
 import sys
 import datetime
 import re
+from PIL import Image
+from PIL.ExifTags import TAGS
+#import exif
+
+def get_exif(fn):
+    ret = {}
+    i = Image.open(fn)
+    info = i._getexif()
+    if info is not None:
+        for tag, value in info.items():
+            decoded = TAGS.get(tag, tag)
+            ret[decoded] = value
+    else:
+        print(f"File '{fn}' has no EXIF data.")
+    return ret
 
 
 # this function gets all the files in the current directory
@@ -22,7 +37,7 @@ def get_files_in_directory(directory):
     return files
 
 # this function gets the date and time from the file name
-def get_date_from_filename(filename: str) -> str:
+def get_date_from_filename(full_path: str, filename: str) -> str:
     """
     Extracts the date and time part from the filename.
 
@@ -32,6 +47,37 @@ def get_date_from_filename(filename: str) -> str:
     Returns:
         str: The extracted date and time as a string.
     """
+    # try to extract the date from EXIF data using exifread
+    json_data = get_exif(full_path)
+    print (f"EXIF data: {json_data}")
+
+    # data = exif.parse(full_path)
+    # print (f"EXIF data: {data}")
+
+    if 'DateTimeOriginal' in json_data:
+        # Convert the date string to a datetime object
+        dt = datetime.datetime.strptime(json_data['DateTimeOriginal'], "%Y:%m:%d %H:%M:%S")
+        # Convert the datetime object to a string in the desired format
+        dt = dt.strftime("%Y-%m-%d %H:%M:%S")
+        # Return the formatted date string
+        return dt
+    elif 'DateTimeDigitalized' in json_data:
+        # Convert the date string to a datetime object
+        dt = datetime.datetime.strptime(json_data['DateTimeDigitalized'], "%Y:%m:%d %H:%M:%S")
+        # Convert the datetime object to a string in the desired format
+        dt = dt.strftime("%Y-%m-%d %H:%M:%S")
+        # Return the formatted date string
+        return dt
+    elif 'DateTime' in json_data:
+        # Convert the date string to a datetime object
+        dt = datetime.datetime.strptime(json_data['DateTime'], "%Y:%m:%d %H:%M:%S")
+        # Convert the datetime object to a string in the desired format
+        dt = dt.strftime("%Y-%m-%d %H:%M:%S")
+        # Return the formatted date string
+        return dt
+    else:
+        print(f"File '{filename}' has no valid date and time EXIF data.")
+
     # if the file name matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*.jpg'
     if re.match(r'IMG-\d{8}-WA\d+\.jpg', filename):
         # extract the date from the file name
@@ -40,6 +86,9 @@ def get_date_from_filename(filename: str) -> str:
         day = filename.split('-')[1][6:]
         date_str = f'{year}-{month}-{day} 00:00:00'
         return date_str
+
+    # if the file name matchs the regex pattern 'YYYYMMDD_HHMMSS.*.jpg'
+
 
 
 
@@ -82,7 +131,7 @@ if __name__ == "__main__":
         for file in files:
             print(f"Setting date for file: {file}")
             full_path = os.path.join(file_path, file)
-            date_str = get_date_from_filename(file)
+            date_str = get_date_from_filename(full_path,file)
             print (f"Extracted date string: {date_str}")
             set_file_date(full_path, date_str)
         sys.exit(0)
