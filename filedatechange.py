@@ -81,15 +81,40 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
     # if the file name matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*.jpg'
     if re.match(r'IMG-\d{8}-WA\d+\.jpg', filename):
         # extract the date from the file name
+        print(f"File '{filename}' matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*.jpg'")
         year = filename.split('-')[1][:4]
         month = filename.split('-')[1][4:6]
         day = filename.split('-')[1][6:]
         date_str = f'{year}-{month}-{day} 00:00:00'
         return date_str
 
-    # if the file name matchs the regex pattern 'YYYYMMDD_HHMMSS.*.jpg'
+    # if the file name matchs the regex pattern 'YYYY-MM-DD HH.MM.SS.*.jpg'
+    if re.match(r'\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2}.*\.jpg', filename):
+        # extract the date from the file name
+        print(f"File '{filename}' matchs the regex pattern 'YYYY-MM-DD HH.MM.SS.*.jpg'")
+        year = filename.split('-')[0]
+        month = filename.split('-')[1]
+        day = filename.split('-')[2].split(' ')[0]
+        hour = filename.split(' ')[1].split('.')[0]
+        minute = filename.split('.')[1]
+        second = filename.split('.')[2].split('.')[0]
+        date_str = f'{year}-{month}-{day} {hour}:{minute}:{second}'
+        return date_str
+    
+    # if the file name matchs the regex pattern 'YYYYMMDD_HHMMSS.*'
+    if re.match(r'\d{8}_\d{6}.*', filename):
+        # extract the date from the file name
+        print(f"File '{filename}' matchs the regex pattern 'YYYYMMDD_HHMMSS.*'")
+        year = filename.split('_')[0][:4]
+        month = filename.split('_')[0][4:6]
+        day = filename.split('_')[0][6:]
+        hour = filename.split('_')[1][:2]
+        minute = filename.split('_')[1][2:4]
+        second = filename.split('_')[1][4:6]
+        date_str = f'{year}-{month}-{day} {hour}:{minute}:{second}'
+        return date_str
 
-
+    return None
 
 
 def set_file_date(file_path: str, date_str: str) -> None:
@@ -132,6 +157,9 @@ if __name__ == "__main__":
             print(f"Setting date for file: {file}")
             full_path = os.path.join(file_path, file)
             date_str = get_date_from_filename(full_path,file)
+            if date_str is None:
+                print(f"Could not extract date from file '{file}'. Skipping...")
+                continue
             print (f"Extracted date string: {date_str}")
             set_file_date(full_path, date_str)
         sys.exit(0)
