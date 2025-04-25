@@ -7,7 +7,12 @@ import json
 import re
 from PIL import Image
 from PIL.ExifTags import TAGS
+
+from logger.logger_manager import Logger
 #import exif
+
+logger = Logger("FDCHANG")
+logger_notime = Logger("NOTIMES", show_date=False) # shows commands output
 
 def get_exif(fn):
     ret = {}
@@ -18,7 +23,7 @@ def get_exif(fn):
             decoded = TAGS.get(tag, tag)
             ret[decoded] = value
     else:
-        print(f"File '{fn}' has no EXIF data.")
+        logger.info(f"File '{fn}' has no EXIF data.")
     return ret
 
 
@@ -50,14 +55,14 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
     """
     # if the file is a jpg file, try to extract the date from the EXIF data
     if filename.endswith('.jpg') or filename.endswith('.jpeg'):
-        print (f"File '{filename}' is a jpg file.")
+        logger.info(f"File '{filename}' is a jpg file.")
         # check if the file exists
         if not os.path.isfile(full_path):
-            print(f"File '{full_path}' does not exist.")
+            logger.warning(f"File '{full_path}' does not exist.")
             return None
         # check if the file is empty
         if os.path.getsize(full_path) == 0:
-            print(f"File '{full_path}' is empty.")
+            logger.info(f"File '{full_path}' is empty.")
             return None
         # check if the file is a valid image
         # try:
@@ -68,7 +73,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
         #     return None
         # try to extract the date from EXIF data using exifreader
         json_data = get_exif(full_path)
-        print (f"EXIF data: {json_data}")
+        logger.info(f"EXIF data: {json_data}")
 
         # data = exif.parse(full_path)
         # print (f"EXIF data: {data}")
@@ -95,11 +100,11 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
             # Return the formatted date string
             return dt
         else:
-            print(f"File '{filename}' has no valid date and time EXIF data.")
+            logger.warning(f"File '{filename}' has no valid date and time EXIF data.")
 
     # if fullpath.json exists, read the date from it
     if os.path.isfile(full_path + '.json'):
-        print (f"File '{full_path}.json' exists.")
+        logger.info(f"File '{full_path}.json' exists.")
         with open(full_path + '.json', 'r') as f:
             # get json data from the file
             data = f.read()
@@ -107,7 +112,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
             json_data = json.loads(data)
             # check if the field exists
             if 'photoTakenTime' in json_data:
-                print (f"File '{full_path}.json' has 'photoTakenTime' field.")
+                logger.info (f"File '{full_path}.json' has 'photoTakenTime' field.")
                 # get the date and time from the field
                 dt = json_data['photoTakenTime']
                 # convert the date and time to a datetime object
@@ -117,12 +122,12 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
                 # return the formatted date string
                 return dt
             else:
-                print(f"File '{full_path}.json' has no valid date and time EXIF data.")
+                logger.warning(f"File '{full_path}.json' has no valid date and time EXIF data.")
 
     # if the file name matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*.jpg'
     if re.match(r'IMG-\d{8}-WA\d+\.jpg', filename):
         # extract the date from the file name
-        print(f"File '{filename}' matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*.jpg'")
+        logger.info(f"File '{filename}' matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*.jpg'")
         year = filename.split('-')[1][:4]
         month = filename.split('-')[1][4:6]
         day = filename.split('-')[1][6:]
@@ -132,7 +137,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
     # if the file name matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*\.*.jpg'
     if re.match(r'IMG-\d{8}-WA\d+\.*.*\.jpg', filename):
         # extract the date from the file name
-        print(f"File '{filename}' matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*\.*.jpg'")
+        logger.info(f"File '{filename}' matchs the regex pattern 'IMG-YYYYMMM-WA[0-9]*\.*.jpg'")
         year = filename.split('-')[1][:4]
         month = filename.split('-')[1][4:6]
         day = filename.split('-')[1][6:]
@@ -142,7 +147,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
     # if the file name matchs the regex pattern 'YYYY-MM-DD HH.MM.SS.*.jpg'
     if re.match(r'\d{4}-\d{2}-\d{2} \d{2}\.\d{2}\.\d{2}.*\.jpg', filename):
         # extract the date from the file name
-        print(f"File '{filename}' matchs the regex pattern 'YYYY-MM-DD HH.MM.SS.*.jpg'")
+        logger.info(f"File '{filename}' matchs the regex pattern 'YYYY-MM-DD HH.MM.SS.*.jpg'")
         year = filename.split('-')[0]
         month = filename.split('-')[1]
         day = filename.split('-')[2].split(' ')[0]
@@ -155,7 +160,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
     # if the file name matchs the regex pattern 'YYYYMMDD_HHMMSS.*'
     if re.match(r'\d{8}_\d{6}.*', filename):
         # extract the date from the file name
-        print(f"File '{filename}' matchs the regex pattern 'YYYYMMDD_HHMMSS.*'")
+        logger.info(f"File '{filename}' matchs the regex pattern 'YYYYMMDD_HHMMSS.*'")
         year = filename.split('_')[0][:4]
         month = filename.split('_')[0][4:6]
         day = filename.split('_')[0][6:]
@@ -168,7 +173,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
     # if the file name matchs the regex pattern 'VID-YYYYMMDD-\.*.*'
     if re.match(r'VID-\d{8}-\.*.*', filename):
         # extract the date from the file name
-        print(f"File '{filename}' matchs the regex pattern 'VID-YYYYMMDD-\.*.*'")
+        logger.info(f"File '{filename}' matchs the regex pattern 'VID-YYYYMMDD-\.*.*'")
         year = filename.split('-')[1][:4]
         month = filename.split('-')[1][4:6]
         day = filename.split('-')[1][6:]
@@ -178,7 +183,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
     # if the file name matchs the regex pattern 'Screenshot_YYYYMMDD-HHMMSS\.*.*'
     if re.match(r'Screenshot_\d{8}-\d{6}.*', filename):
         # extract the date from the file name
-        print(f"File '{filename}' matchs the regex pattern 'Screenshot_YYYYMMDD-HHMMSS\.*.*'")
+        logger.info(f"File '{filename}' matchs the regex pattern 'Screenshot_YYYYMMDD-HHMMSS\.*.*'")
         year = filename.split('_')[1][:4]
         month = filename.split('_')[1][4:6]
         day = filename.split('_')[1][6:8]
@@ -188,7 +193,7 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
         date_str = f'{year}-{month}-{day} {hour}:{minute}:{second}'
         return date_str
 
-    print(f"File '{filename}' does not match any known date format.")
+    logger.warning(f"File '{filename}' does not match any known date format.")
     return None
 
 
@@ -203,19 +208,23 @@ def set_file_date(file_path: str, date_str: str) -> None:
     Returns:
         None
     """
-    # Convert the date string to a datetime object
-    dt = datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+    try:
+        # Convert the date string to a datetime object
+        dt = datetime.datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
 
-    # Convert the datetime object to a timestamp
-    timestamp = dt.timestamp()
+        # Convert the datetime object to a timestamp
+        timestamp = dt.timestamp()
 
-    # Set the file's modification time
-    os.utime(file_path, (timestamp, timestamp))
+        # Set the file's modification time
+        os.utime(file_path, (timestamp, timestamp))
+    except Exception as e:
+        logger.error(f"Error setting date for file '{file_path}': {e}")
+        return
 
 if __name__ == "__main__":
     # Check if the correct number of arguments is provided
     if len(sys.argv) != 2:
-        print("Usage: python filedatechange.py <file_path>")
+        logger.info("Usage: python filedatechange.py <file_path>")
         sys.exit(1)
 
     # Get the file path and date string from command line arguments
@@ -224,40 +233,44 @@ if __name__ == "__main__":
     # check if the file path is a directory
     if os.path.isdir(file_path):
         # Get all files in the directory
-        print(f"'{file_path}' is a directory.")
+        logger.info(f"'{file_path}' is a directory.")
         files = get_files_in_directory(file_path)
         #print(f"Files in directory '{file_path}': {files}")
         # Set the modification date for each file
         for file in files:
             if file.endswith('.json'):
-                print(f"Skipping json file: {file}")
+                logger.info(f"Skipping json file: {file}")
+                continue
+            # if filename is Thumbs.db, skip it
+            if file == 'Thumbs.db':
+                logger.info(f"Skipping Thumbs.db file: {file}")
                 continue
             # check if the file is a directory
 
             if os.path.isdir(os.path.join(file_path, file)):
-                print(f"Skipping directory: {file}")
+                logger.info(f"Skipping directory: {file}")
                 continue
-            print(f"Setting date for file: {file}")
+            logger.info(f"Setting date for file: {file}")
             full_path = os.path.join(file_path, file)
             date_str = get_date_from_filename(full_path,file)
             if date_str is None:
-                print(f"Could not extract date from file '{file}'. Skipping...")
+                logger.warning(f"Could not extract date from file '{file}'. Skipping...")
                 continue
-            print (f"Extracted date string: {date_str}")
+            logger.info(f"Extracted date string: {date_str}")
             set_file_date(full_path, date_str)
         sys.exit(0)
 
     # Check if the file exists
     if not os.path.isfile(file_path):
-        print(f"File '{file_path}' does not exist.")
+        logger.warning(f"File '{file_path}' does not exist.")
         sys.exit(1)
 
     # Get the file date from the filename
     date_str = get_date_from_filename(file_path,os.path.basename(file_path))
     if date_str is None:
-        print(f"Could not extract date from file '{file_path}'.")
+        logger.error(f"Could not extract date from file '{file_path}'.")
         sys.exit(1)
-    print (f"Extracted date string: {date_str}")
+    logger.info(f"Extracted date string: {date_str}")
 
     # Set the file's modification date
     set_file_date(file_path, date_str)
