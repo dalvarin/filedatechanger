@@ -78,29 +78,29 @@ def get_date_from_filename(full_path: str, filename: str) -> str:
         # data = exif.parse(full_path)
         # print (f"EXIF data: {data}")
 
-        if 'DateTimeOriginal' in json_data:
-            # Convert the date string to a datetime object
-            dt = datetime.datetime.strptime(json_data['DateTimeOriginal'], "%Y:%m:%d %H:%M:%S")
-            # Convert the datetime object to a string in the desired format
-            dt = dt.strftime("%Y-%m-%d %H:%M:%S")
-            # Return the formatted date string
-            return dt
-        elif 'DateTimeDigitalized' in json_data:
-            # Convert the date string to a datetime object
-            dt = datetime.datetime.strptime(json_data['DateTimeDigitalized'], "%Y:%m:%d %H:%M:%S")
-            # Convert the datetime object to a string in the desired format
-            dt = dt.strftime("%Y-%m-%d %H:%M:%S")
-            # Return the formatted date string
-            return dt
-        elif 'DateTime' in json_data:
-            # Convert the date string to a datetime object
-            dt = datetime.datetime.strptime(json_data['DateTime'], "%Y:%m:%d %H:%M:%S")
-            # Convert the datetime object to a string in the desired format
-            dt = dt.strftime("%Y-%m-%d %H:%M:%S")
-            # Return the formatted date string
-            return dt
-        else:
-            logger.warning(f"File '{filename}' has no valid date and time EXIF data.")
+        # if 'DateTimeOriginal' in json_data:
+        #     # Convert the date string to a datetime object
+        #     dt = datetime.datetime.strptime(json_data['DateTimeOriginal'], "%Y:%m:%d %H:%M:%S")
+        #     # Convert the datetime object to a string in the desired format
+        #     dt = dt.strftime("%Y-%m-%d %H:%M:%S")
+        #     # Return the formatted date string
+        #     return dt
+        # elif 'DateTimeDigitized' in json_data:
+        #     # Convert the date string to a datetime object
+        #     dt = datetime.datetime.strptime(json_data['DateTimeDigitized'], "%Y:%m:%d %H:%M:%S")
+        #     # Convert the datetime object to a string in the desired format
+        #     dt = dt.strftime("%Y-%m-%d %H:%M:%S")
+        #     # Return the formatted date string
+        #     return dt
+        # elif 'DateTime' in json_data:
+        #     # Convert the date string to a datetime object
+        #     dt = datetime.datetime.strptime(json_data['DateTime'], "%Y:%m:%d %H:%M:%S")
+        #     # Convert the datetime object to a string in the desired format
+        #     dt = dt.strftime("%Y-%m-%d %H:%M:%S")
+        #     # Return the formatted date string
+        #     return dt
+        # else:
+        #     logger.warning(f"File '{filename}' has no valid date and time EXIF data.")
 
     # if fullpath.json exists, read the date from it
     if os.path.isfile(full_path + '.json'):
