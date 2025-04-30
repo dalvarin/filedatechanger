@@ -122,7 +122,7 @@ def main():
             mod_date = get_modification_date(file)
             set_exif_date(file, mod_date)
             set_file_date(file, mod_date)
-            time.sleep(1)
+
                 
         sys.exit(0)
 
