@@ -15,7 +15,7 @@ class Logger:
 
         self.log_colors = {
             'DEBUG': 'light_black',
-            'INFO': 'black',
+            'INFO': 'white',
             'WARNING': 'bold_purple',
             'ERROR': 'red',
             'CRITICAL': 'bold_red,bg_white',

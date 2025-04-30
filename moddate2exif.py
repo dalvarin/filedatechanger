@@ -1,9 +1,11 @@
 import os
 import sys
+import time
 from datetime import datetime
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 from piexif import ExifIFD, load, dump, insert
+import enlighten
 
 from logger.logger_manager import Logger
 
@@ -94,9 +96,21 @@ def main():
         # Get all files in the directory
         logger.info(f"'{file_path}' is a directory.")
         files = get_files_in_directory(file_path)
-        #print(f"Files in directory '{file_path}': {files}")
+        num_files = len(files)
+
+        manager = enlighten.get_manager()
+        status_bar = manager.status_bar('Processing EXIF dates',
+                                color='bold_underline_bright_white_on_lightslategray',
+                                justify=enlighten.Justify.CENTER)
+        std_bar_format = u'{desc}{desc_pad}{percentage:3.0f}%|{bar}| ' + \
+                 u'{count:{len_total}d}/{total:d} ' + \
+                 u'[{elapsed}<{eta}, {rate:.2f}{unit_pad}{unit}/s]'
+        pbar = manager.counter(total=num_files, desc='Progress', unit='files', color='green', bar_format=std_bar_format)
+
         # Set the modification date for each file
         for file in files:
+            #bar.next()
+            pbar.update()
             if os.path.isdir(os.path.join(file_path, file)):
                 logger.info(f"Skipping directory: {file}")
                 continue
@@ -108,6 +122,8 @@ def main():
             mod_date = get_modification_date(file)
             set_exif_date(file, mod_date)
             set_file_date(file, mod_date)
+            time.sleep(1)
+                
         sys.exit(0)
 
     if not os.path.isfile(file_path):
