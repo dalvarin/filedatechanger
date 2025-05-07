@@ -1,8 +1,8 @@
 import os
 import sys
-import time
 import argparse
 import re
+import json
 from datetime import datetime
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
@@ -155,7 +155,30 @@ def get_filename_date(file_path):
     logger.warning(f"File '{filename}' does not match any known date format.")
     return None
 
-def process_file(file_path: str, provided_date: datetime, force_filename_date: bool, force_mod_date: bool) -> None:
+def get_json_date(file_path):
+    """Get the date from the associated JSON file."""
+    if os.path.isfile(file_path + '.json'):
+        logger.info(f"File '{file_path}.json' exists.")
+        with open(file_path + '.json', 'r') as f:
+            # get json data from the file
+            data = f.read()
+            # get photoTakenTime field from json data
+            json_data = json.loads(data)
+            # check if the field exists
+            if 'photoTakenTime' in json_data:
+                logger.info (f"File '{file_path}.json' has 'photoTakenTime' field.")
+                # get the date and time from the field
+                dt = json_data['photoTakenTime']
+                # convert the date and time to a datetime object
+                dt = datetime.fromtimestamp(int(dt['timestamp']))
+                return dt
+            else:
+                logger.warning(f"File '{file_path}.json' has no valid date and time EXIF data.")
+    else:
+        logger.warning(f"File '{file_path}.json' does not exist.")
+        return None
+
+def process_file(file_path: str, provided_date: datetime, force_json_date: bool, force_filename_date: bool, force_mod_date: bool) -> None:
     """Process a file to set its EXIF date and file date."""
     if not file_path.endswith('.jpg') and not file_path.endswith('.jpeg'):
         logger.info(f"Skipping non-JPG file: {file_path}")
@@ -166,16 +189,34 @@ def process_file(file_path: str, provided_date: datetime, force_filename_date: b
         set_exif_date(file_path, taken_date)
         set_file_date(file_path, taken_date)
         return
+    elif force_json_date:
+        taken_date = get_json_date(file_path)
+        if not taken_date:
+            taken_date = get_filename_date(file_path)
+            if not taken_date:
+                logger.info(f"No date found in filename for {file_path}. Using modification date.")
+                taken_date = get_modification_date(file_path)
+            else:
+                logger.info(f"Date found in filename for {file_path}: {taken_date}.")
+        else:
+            logger.info(f"Date found in JSON file for {file_path}: {taken_date}.")
+        set_exif_date(file_path, taken_date)
+        set_file_date(file_path, taken_date)
+        return
     elif force_filename_date:
         taken_date = get_filename_date(file_path)
         if not taken_date:
             logger.info(f"No date found in filename for {file_path}. Using modification date.")
             taken_date = get_modification_date(file_path)
+            logger.info(f"Using modification date for {file_path}: {taken_date}.")
+        else:
+            logger.info(f"Date found in filename for {file_path}: {taken_date}.")
         set_exif_date(file_path, taken_date)
         set_file_date(file_path, taken_date)
         return
     elif force_mod_date:
         taken_date = get_modification_date(file_path)
+        logger.info(f"Using modification date for {file_path}: {taken_date}.")
         set_exif_date(file_path, taken_date)
         set_file_date(file_path, taken_date)
         return
@@ -183,11 +224,21 @@ def process_file(file_path: str, provided_date: datetime, force_filename_date: b
     else:
         taken_date = get_exif_date(file_path)
         if not taken_date:
-            taken_date = get_filename_date(file_path)
+            logger.info(f"No EXIF date found for {file_path}.")
+            taken_date = get_json_date(file_path)
             if not taken_date:
-                logger.info(f"No date found in filename for {file_path}. Using modification date.")
-                taken_date = get_modification_date(file_path)
-        
+                logger.info(f"No date found in JSON file for {file_path}.")
+                taken_date = get_filename_date(file_path)
+                if not taken_date:
+                    logger.info(f"No date found in filename for {file_path}. Using modification date.")
+                    taken_date = get_modification_date(file_path)
+                    logger.info(f"Using modification date for {file_path}: {taken_date}.")
+                else:
+                    logger.info(f"Date found in filename for {file_path}: {taken_date}.")
+            else:
+                logger.info(f"Date found in JSON file for {file_path}: {taken_date}.")
+        else:
+            logger.info(f"Date found in EXIF data for {file_path}: {taken_date}.")
         set_exif_date(file_path, taken_date)
         set_file_date(file_path, taken_date)
         return
@@ -231,6 +282,7 @@ def main():
     parser.add_argument('-d', '--date', type=str, help='Date and time to set for the file')
     parser.add_argument('-f', '--filenamedate', action='store_true', help='Use date from filename')
     parser.add_argument('-m', '--modificationdate', action='store_true', help='Use file modification date')
+    parser.add_argument('-j', '--jsondate', action='store_true', help='Use date from associated JSON file')
 
     # parse the arguments
     args = parser.parse_args()
@@ -250,17 +302,23 @@ def main():
             # parse the date string to datetime object
             provided_date = datetime.strptime(args.date, "%Y-%m-%d %H:%M:%S")
             logger.info(f"Date provided: {provided_date}. It is going to be used for all files.")
+            args.jsondate = False
             args.filenamedate = False
             args.modificationdate = False
         except ValueError as e:
             logger.error(f"Invalid date format: {e}")
             sys.exit(1)
 
-    if args.filenamedate and not args.date:
+    if args.jsondate:
+        logger.info("Forcing the use of date from JSON file.")
+        args.filenamedate = False
+        args.modificationdate = False
+
+    if args.filenamedate:
         logger.info("Forcing the use of date from filename.")
         args.modificationdate = False
 
-    if args.modificationdate and not args.date and not args.filenamedate:
+    if args.modificationdate:
         logger.info("Forcing the use of file modification date.")
 
 
@@ -284,17 +342,17 @@ def main():
         for file in files:
             #bar.next()
             pbar.update()
-            if os.path.isdir(os.path.join(args.filename, file)):
+            if os.path.isdir(os.path.join(args.path, file)):
                 logger.info(f"Skipping directory: {file}")
                 continue
-            file = os.path.join(args.filename, file)
+            file = os.path.join(args.path, file)
             logger.info(f"Processing file: {file}")
 
-            process_file(file, provided_date , args.filenamedate, args.modificationdate)
+            process_file(file, provided_date , args.jsondate, args.filenamedate, args.modificationdate)
                 
         sys.exit(0)
 
-    process_file(args.path, provided_date, args.filenamedate, args.modificationdate)
+    process_file(args.path, provided_date, args.jsondate, args.filenamedate, args.modificationdate)
 
 if __name__ == "__main__":
     main()
